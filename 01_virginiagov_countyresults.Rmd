@@ -22,11 +22,64 @@ options(stringsAsFactors = FALSE)
 
 This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
+Getting 2020 Presidential results to compare against. 
+
+Data available here: https://historical.elections.virginia.gov/elections/view/144567/
+
+A little column cleaning and we'll load in the data file.
+
+
 ```{r}
 
+prez_2020 <- read_csv("processed_data/va_2020_prez_cleaned.csv")
+
+```
+
+Let's see what we have
+
+```{r}
+
+head(prez_2020)
 
 
 ```
+
+pcts
+```{r}
+
+prez_2020 %>% 
+  mutate(
+    biden_pct = biden/total_votes_2021_prez
+  )
+
+```
+
+now let's do some rounding and move that decimal point
+
+```{r}
+
+prez_2020 %>% 
+  mutate(
+    biden_pct = janitor::round_half_up(biden / total_votes_2021_prez * 100, 1)
+  )
+
+```
+
+now trump too
+
+```{r}
+
+prez_2020 <- prez_2020 %>% 
+  mutate(
+    biden_pct = janitor::round_half_up(biden / total_votes_2021_prez * 100, 1),
+    trump_pct = janitor::round_half_up(trump / total_votes_2021_prez * 100, 1)
+  )
+
+head(prez_2020)
+
+```
+
+
 
 Getting 2021 Virginia governor results by county
 
@@ -55,26 +108,54 @@ Where are candidates themselves? They are "nested" inside. We'll use unnest() to
 results <- content_df %>%
   unnest(cols = Candidates)
 
-
-```
-
-Let's look at our data
-```{r}
-
-glimpse(results)
-
-```
-
-What the
-```{r}
-
-
+head(results)
 
 ```
 
 
+unnest again on locality
 ```{r}
 
+results <- results %>%
+  unnest(cols = Locality)
+
+head(results)
+```
+
+Great. we'll give it a new name to make it easier for us and clean the column names, remove extraneous ones
+```{r}
+
+gov_2021 <- results %>% 
+  clean_names() %>% 
+  select(-precincts_reporting,
+         -precincts_participating,
+         -last_modified,
+         -ballot_order)
+
+head(gov_2021)
+
+```
+
+
+What's the issue we may have here? This is actually tidy data which is good - but for comparing the candidates we'd want them on the same row. Enter pivot_wider()
+
+We'll get rid of everything we don't need first
+```{r}
+
+gov_2021 <- gov_2021 %>% 
+  filter(ballot_name %in% c("Glenn A. Youngkin", "Terry R. McAuliffe")) %>% 
+  select(-locality_code,
+         -political_party)
+  
+gov_2021
+
+```
+
+now we'll do the spreading out to reshape
+```{r}
+
+gov_2021 %>% 
+  pivot_wider(names_from = ballot_name, values_from = c(votes, percentage))
 
 
 ```
