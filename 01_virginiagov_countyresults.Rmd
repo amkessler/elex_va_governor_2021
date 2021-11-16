@@ -71,8 +71,8 @@ now trump too
 
 prez_2020 <- prez_2020 %>% 
   mutate(
-    biden_pct = janitor::round_half_up(biden / total_votes_2021_prez * 100, 1),
-    trump_pct = janitor::round_half_up(trump / total_votes_2021_prez * 100, 1)
+    biden_pct = janitor::round_half_up(biden / total_votes_2021_prez * 100, 2),
+    trump_pct = janitor::round_half_up(trump / total_votes_2021_prez * 100, 2)
   )
 
 head(prez_2020)
@@ -154,12 +154,86 @@ gov_2021
 now we'll do the spreading out to reshape
 ```{r}
 
-gov_2021 %>% 
+gov_2021_wide <- gov_2021 %>% 
   pivot_wider(names_from = ballot_name, values_from = c(votes, percentage))
 
+gov_2021_wide
 
 ```
 
+Nice. This is giving us some pretty long column names. we can change them after the fact using rename(). but first let's clean_names to make it easier
+```{r}
+
+gov_2021_wide <- gov_2021_wide %>% 
+  clean_names()
+
+head(gov_2021_wide)
+```
+
+now let's rename, and we'll use similar names to what we had earlier in our 2021 results
+
+```{r}
+
+gov_2021_wide <- gov_2021_wide %>% 
+  rename(
+    youngkin = votes_glenn_a_youngkin,
+    mcauliffe = votes_terry_r_mc_auliffe,
+    pct_youngkin = percentage_glenn_a_youngkin,
+    pct_mcauliffe = percentage_terry_r_mc_auliffe
+  )
+
+head(gov_2021_wide)
+
+```
+
+Bingo. 
+There's still one potential issue here. Can you see it?
+The percentage columns are actually text values, not numbers. And they have that % sign in the text too.
+Let's fix that using a handy function from the readr package, parse_number().
+
+```{r}
+
+gov_2021_wide <- gov_2021_wide %>% 
+  mutate(
+    pct_youngkin = readr::parse_number(pct_youngkin),
+    pct_mcauliffe = readr::parse_number(pct_mcauliffe)
+  )
+
+head(gov_2021_wide)
+```
+
+Perfect. Problem solved.
+
+Putting things together - joining
+Now we want to actually join things up.
+
+Can we do that? Let's check out our two tables
+```{r}
+
+gov_2021_wide
+
+```
+```{r}
+
+prez_2020
+
+```
+
+Few quick things to deal with...  first let's get rid of the total votes in 2021, we don't need that anymore.
+But alos the locality isn't the same case as in our governor's results, so let's uppercase it.
+```{r}
+
+prez_2020 <- prez_2020 %>% 
+  mutate(
+    locality = str_to_upper(locality)
+  ) %>% 
+  select(-total_votes_2021_prez)
+
+prez_2020
+
+```
+
+Great. Now we're all ready to join
 
 ```{r}
 
@@ -187,3 +261,25 @@ gov_2021 %>%
 
 
 ```
+
+
+```{r}
+
+
+
+```
+
+
+```{r}
+
+
+
+```
+
+
+```{r}
+
+
+
+```
+
